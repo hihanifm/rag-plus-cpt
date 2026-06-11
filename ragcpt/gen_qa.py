@@ -32,8 +32,18 @@ SECTION TEXT:
 {text}
 \"\"\"
 
-Produce {n_plain} PLAIN and {n_think} THINK question-answer pairs about THIS section.
-- Questions must be answerable solely from the section text.
+Focus on **substantive carrier-technical content**: requirements, procedures, message flows,
+parameters/values, configurations, device/network behaviors, test conditions and expected results.
+
+IMPORTANT — skip non-technical boilerplate. If this section is mostly **document metadata**
+(revision history, version numbers, dates, authors, change logs, table of contents, scope/
+applicability statements, acronym/glossary lists, references, legal/confidentiality notices) and
+contains no substantive carrier-technical content, return an EMPTY list: {{"pairs": []}}.
+Never ask about revision dates, version numbers, who edited the doc, or what an acronym expands to.
+
+Otherwise produce up to {n_plain} PLAIN and up to {n_think} THINK question-answer pairs about the
+technical content of THIS section.
+- Questions must be answerable solely from the section text and be about carrier behavior/requirements.
 - PLAIN: a direct concise answer, no reasoning shown.
 - THINK: the answer preceded by a short structured <think> block in exactly this shape:
 {skeleton_think}
@@ -54,9 +64,13 @@ SECTION TEXT:
 {text}
 \"\"\"
 
-Write {n_unknown} question(s) that sound like a user asking for an EXACT carrier-specific value \
-(timer, ID, threshold, parameter) that is NOT actually stated in this section. The answer must be a \
-polite refusal-to-guess that points to verifying the source document, e.g.:
+If this section is only document metadata (revision history, ToC, glossary, dates, scope) with no
+carrier-technical topic to anchor to, return EMPTY: {{"pairs": []}}.
+
+Otherwise write {n_unknown} question(s) that sound like a user asking for an EXACT carrier-specific \
+value (timer, ID, threshold, parameter) on the section's technical topic that is NOT actually stated \
+in this section. The answer must be a polite refusal-to-guess that points to verifying the source \
+document, e.g.:
 "I don't have grounded carrier-specific information to answer that exactly. Please verify against the \
 source document (RAG)."
 
