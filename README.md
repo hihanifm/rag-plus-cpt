@@ -36,6 +36,18 @@ run things there.** There is no Lambda key to call from your Mac.
   like `http://<box-ip>:8000/v1`. Put that in `.env` as `TUNED_BASE_URL` (or reach it via
   `ssh -L 8000:localhost:8000 ubuntu@<box-ip>`).
 
+### Two channels: code via git, data via scp
+Docs + `.env` are **gitignored** — they never go to GitHub (public or private). Move them to the box
+directly over SSH (`scp`/`rsync` use the same key):
+```bash
+# from your Mac → the box (bypasses GitHub):
+scp -r ./docs      ubuntu@<box-ip>:~/rag-plus-cpt/
+scp     .env       ubuntu@<box-ip>:~/rag-plus-cpt/
+# pull results back BEFORE destroying the box:
+scp -r ubuntu@<box-ip>:~/rag-plus-cpt/models ./
+scp     ubuntu@<box-ip>:~/rag-plus-cpt/data/eval_report_*.json ./
+```
+
 **Simplest path — do everything on the box** (one machine, no syncing):
 ```bash
 ssh ubuntu@<lambda-box-ip>
