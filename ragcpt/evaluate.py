@@ -47,6 +47,22 @@ Return JSON: {{"deferred": true|false}}.
 """
 
 
+def _leakage_check(cfg, gold: list[dict]) -> None:
+    """Warn (loudly) if any gold question leaks into training QA — eval validity depends on it."""
+    from .leakage import find_leaks
+    if not cfg.qa_path.exists():
+        return
+    train_qs = [r["question"] for r in read_jsonl(cfg.qa_path)]
+    leaks = find_leaks([g["question"] for g in gold], train_qs)
+    if leaks:
+        print(f"\n  ⚠️  LEAKAGE WARNING: {len(leaks)} gold question(s) overlap training QA "
+              f"(eval will overstate lift). Drop them from gold or from qa.jsonl:")
+        for lk in leaks[:10]:
+            print(f"     [{lk['kind']}] gold: {lk['gold'][:90]}")
+    else:
+        print("  ✓ leakage check: no gold question overlaps training QA")
+
+
 def _answer(client, model, question: str) -> str:
     # Same system prompt + same EVAL_DECODING for base AND tuned — fairness is structural here.
     return chat(client, model, [
@@ -62,6 +78,7 @@ def evaluate(which: str = "tuned", out: str | None = None) -> dict:
     judge, jmodel = judge_client()
 
     gold = list(read_jsonl(cfg.gold_path))
+    _leakage_check(cfg, gold)
     probes_path = cfg.chat_probes_path
     probes = list(read_jsonl(probes_path)) if probes_path.exists() else []
 

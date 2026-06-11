@@ -51,6 +51,10 @@ build the gold set). Teacher calls are **parallel + elastic** (`concurrency`, SD
 - **Gold eval is sacred:** teacher may draft, human corrects; trick/comparison/unknown items are
   hand-written (leakage guard). Define the Pass/Kill threshold (`pipeline.yaml: success`) *before*
   training.
+- **No leakage:** no gold question (or close paraphrase) may appear in training QA. `evaluate` runs
+  `leakage.find_leaks` and warns; a human drops the gold item or the training QA.
+- **Eval fairness:** base and tuned run identical system prompt / chat template / decoding
+  (`EVAL_DECODING`) / gold set. Never special-case base vs tuned.
 - **Don't lose evidence:** `data/` records what produced a result — `chunks/qa_raw/qa/qa_rejected/sft`
   JSONL, `dataset_manifest.json`, `prep_snapshot.json` (config+commit+counts), `eval_report_*.json`.
   All gitignored (local-only). No `manifest.py` infra in Stage 0 — just the files.

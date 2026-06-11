@@ -77,6 +77,13 @@ each module's docstring.
 - **curate:** teacher drafts gold Q&A → approve/edit → append to `eval/gold.jsonl` (hard items
   hand-written for leakage safety).
 
+## leakage guard  (`ragcpt/leakage.py`)
+- **HARD RULE:** no gold question (or close paraphrase) may appear in training QA — gold must be
+  independent of training data, or the eval overstates lift (train/test contamination).
+- **Stage 0:** `find_leaks` does normalized-exact + high-threshold token-Jaccard (no deps); `evaluate`
+  runs it and **warns** (never auto-deletes — a human drops the gold item or the training QA).
+- **Stage A:** upgrade to true fuzzy (rapidfuzz / embeddings) for harder paraphrases.
+
 ---
 
 ### Evidence (Stage 0, no infra)
