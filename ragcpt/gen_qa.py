@@ -10,6 +10,7 @@ Output: data/qa_raw.jsonl  (records tagged with `qa_type` + source chunk id/text
 """
 from __future__ import annotations
 
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 
 from tqdm import tqdm
@@ -95,30 +96,37 @@ def gen_qa(chunks: str | None = None, out: str | None = None, limit: int | None 
     n_unknown = cfg.get("gen_qa", "per_chunk_unknown", default=1)
     max_chars = cfg.get("gen_qa", "max_chunk_chars", default=6000)
 
+    concurrency = cfg.get("gen_qa", "concurrency", default=8)
     rows = list(read_jsonl(chunks_path))
     if limit:
         rows = rows[:limit]
 
-    out_rows: list[dict] = []
-    for ch in tqdm(rows, desc="gen_qa"):
+    def process(ch: dict) -> list[dict]:
+        """All teacher calls for one section. Runs in a worker thread (OpenAI client is thread-safe)."""
         text = ch["text"][:max_chars]
         common = dict(carrier=ch["carrier"], doc_name=ch["doc_name"],
                       doc_type=ch.get("doc_type", ""), heading=ch["heading"], text=text)
+        rows_out: list[dict] = []
         try:
             pt = chat_json(client, model, [{"role": "user", "content": _PLAIN_THINK_PROMPT.format(
                 n_plain=n_plain, n_think=n_think, skeleton_think=_THINK_SHAPE, **common)}])
-            for p in pt.get("pairs", []):
-                out_rows.append(_mk(ch, p))
-        except Exception as e:  # keep going; one bad section shouldn't kill the run
+            rows_out += [_mk(ch, p) for p in pt.get("pairs", [])]
+        except Exception as e:  # one bad section shouldn't kill the run
             print(f"[gen_qa] plain/think failed for {ch['id']}: {e}")
         if n_unknown:
             try:
                 uk = chat_json(client, model, [{"role": "user", "content": _UNKNOWN_PROMPT.format(
                     n_unknown=n_unknown, **common)}])
-                for p in uk.get("pairs", []):
-                    out_rows.append(_mk(ch, p))
+                rows_out += [_mk(ch, p) for p in uk.get("pairs", [])]
             except Exception as e:
                 print(f"[gen_qa] unknown failed for {ch['id']}: {e}")
+        return rows_out
+
+    out_rows: list[dict] = []
+    with ThreadPoolExecutor(max_workers=concurrency) as ex:
+        futures = [ex.submit(process, ch) for ch in rows]
+        for f in tqdm(as_completed(futures), total=len(futures), desc="gen_qa"):
+            out_rows.extend(f.result())
 
     n = write_jsonl(out_path, out_rows)
     print(f"[gen_qa] {len(rows)} sections -> {n} raw QA -> {out_path}")

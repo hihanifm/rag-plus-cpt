@@ -11,6 +11,7 @@ Output: data/qa.jsonl
 from __future__ import annotations
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from tqdm import tqdm
@@ -44,30 +45,39 @@ def filter_qa(qa_raw: str | None = None, out: str | None = None) -> Path:
     out_path = Path(out) if out else cfg.data_dir / "qa.jsonl"
     client, model = judge_client()
 
+    concurrency = cfg.get("gen_qa", "concurrency", default=8)
+
+    # dedup upfront; unknowns are auto-kept; the rest need a grounding judge.
     seen: set[str] = set()
-    kept: list[dict] = []
+    unknown_keep: list[dict] = []
+    candidates: list[dict] = []
     n_in = 0
-    for row in tqdm(list(read_jsonl(in_path)), desc="filter_qa"):
+    for row in read_jsonl(in_path):
         n_in += 1
         key = _norm(row["question"])
         if key in seen:
             continue
-        if row["qa_type"] == "unknown":
-            seen.add(key)
-            kept.append(row)
-            continue
-        # strip any <think> block before grounding-judging the final answer
+        seen.add(key)
+        (unknown_keep if row["qa_type"] == "unknown" else candidates).append(row)
+
+    def judge(row: dict) -> dict | None:
         ans = re.sub(r"<think>.*?</think>", "", row["answer"], flags=re.DOTALL).strip()
         try:
             verdict = chat_json(client, model, [{"role": "user", "content": _JUDGE.format(
                 chunk=row["chunk_text"], q=row["question"], a=ans)}])
         except Exception as e:
             print(f"[filter_qa] judge failed ({row['chunk_id']}): {e}; dropping")
-            continue
+            return None
         if verdict.get("grounded"):
-            seen.add(key)
             row["grounded_reason"] = verdict.get("reason", "")
-            kept.append(row)
+            return row
+        return None
+
+    kept: list[dict] = list(unknown_keep)
+    with ThreadPoolExecutor(max_workers=concurrency) as ex:
+        for r in tqdm(ex.map(judge, candidates), total=len(candidates), desc="filter_qa"):
+            if r:
+                kept.append(r)
 
     n = write_jsonl(out_path, kept)
     rate = (n / n_in * 100) if n_in else 0
