@@ -18,13 +18,17 @@ import re
 
 _JACCARD_THRESHOLD = 0.85
 
+# Drop common stopwords so token-overlap reflects *content* (a reorder/rephrase still matches).
+_STOP = {"what", "is", "the", "a", "an", "of", "for", "to", "in", "on", "does", "do", "are",
+         "this", "that", "which", "how", "and", "or", "with", "by", "be", "at"}
+
 
 def normalize(q: str) -> str:
     return re.sub(r"[^a-z0-9 ]", "", re.sub(r"\s+", " ", q.lower())).strip()
 
 
 def _tokens(q: str) -> set[str]:
-    return set(normalize(q).split())
+    return {t for t in normalize(q).split() if t not in _STOP}
 
 
 def _jaccard(a: set[str], b: set[str]) -> float:
