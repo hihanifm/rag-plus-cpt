@@ -64,7 +64,12 @@ each module's docstring.
 ## evaluate  (`ragcpt/evaluate.py`)
 - **in:** `eval/gold.jsonl` + `eval/chat_probes.jsonl`, against a served endpoint (`base`|`tuned`)
 - **out:** `data/eval_report_<which>.json`
-- **invariants:** knowledge Qs graded correct/incorrect; `unknown` Qs scored on deferral (not recall)
+- **invariants:**
+  - knowledge Qs graded correct/incorrect; `unknown` Qs scored on deferral (not recall)
+  - **FAIRNESS RULE:** base and tuned run under *identical* conditions — same system prompt, chat
+    template, decoding params (`EVAL_DECODING`: temperature/max_tokens/seed), and gold set. Improvement
+    must come from training, not prompt/decoding differences. Enforced via the single `_answer()` path;
+    never special-case base vs tuned.
 - **acceptance:** the Pass/Kill thresholds in `pipeline.yaml: success` (tuned ≫ base; defer ≥ 80%).
 
 ## review  (`ragcpt/review.py`) — human-in-loop
