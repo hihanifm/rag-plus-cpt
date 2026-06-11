@@ -31,6 +31,8 @@ gen_qa:
   per_chunk_unknown: 1            # "defer to RAG" samples
   max_chunk_chars: 6000          # cap teacher input per section
   concurrency: 8                 # parallel API calls (gen_qa + filter_qa). Raise if no rate-limit errors.
+  max_retries: 8                 # SDK backs off + retries on 429 (honors Retry-After) -> elastic self-throttle
+  request_timeout: 60            # seconds per call
 
 dataset_mix:                      # target proportions in the final sft.jsonl (eval-tuned)
   raw_text: 30

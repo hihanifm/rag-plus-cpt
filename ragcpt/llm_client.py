@@ -13,7 +13,15 @@ from .config import load_config, require_env
 
 
 def _client(base_url: str, api_key: str) -> OpenAI:
-    return OpenAI(base_url=base_url, api_key=api_key)
+    # Elastic by default: on 429 / transient errors the SDK backs off (honoring Retry-After) and
+    # retries, so high concurrency self-throttles instead of dropping work. Tune in pipeline.yaml.
+    cfg = load_config()
+    return OpenAI(
+        base_url=base_url,
+        api_key=api_key,
+        max_retries=cfg.get("gen_qa", "max_retries", default=8),
+        timeout=cfg.get("gen_qa", "request_timeout", default=60),
+    )
 
 
 def teacher_client() -> tuple[OpenAI, str]:
