@@ -101,17 +101,21 @@ def gen_qa(chunks: str | None = None, out: str | None = None, limit: int | None 
     if limit:
         rows = rows[:limit]
 
-    def process(ch: dict) -> list[dict]:
-        """All teacher calls for one section. Runs in a worker thread (OpenAI client is thread-safe)."""
+    def process(ch: dict) -> tuple[dict, list[dict], bool]:
+        """All teacher calls for one section. Returns (chunk, rows, failed). `failed` is True if any
+        call errored (e.g. rate limit exhausted retries) so we can retry that section — never silently
+        lose data. An empty result with failed=False is legitimate (metadata-only section)."""
         text = ch["text"][:max_chars]
         common = dict(carrier=ch["carrier"], doc_name=ch["doc_name"],
                       doc_type=ch.get("doc_type", ""), heading=ch["heading"], text=text)
         rows_out: list[dict] = []
+        failed = False
         try:
             pt = chat_json(client, model, [{"role": "user", "content": _PLAIN_THINK_PROMPT.format(
                 n_plain=n_plain, n_think=n_think, skeleton_think=_THINK_SHAPE, **common)}])
             rows_out += [_mk(ch, p) for p in pt.get("pairs", [])]
-        except Exception as e:  # one bad section shouldn't kill the run
+        except Exception as e:
+            failed = True
             print(f"[gen_qa] plain/think failed for {ch['id']}: {e}")
         if n_unknown:
             try:
@@ -119,14 +123,31 @@ def gen_qa(chunks: str | None = None, out: str | None = None, limit: int | None 
                     n_unknown=n_unknown, **common)}])
                 rows_out += [_mk(ch, p) for p in uk.get("pairs", [])]
             except Exception as e:
+                failed = True
                 print(f"[gen_qa] unknown failed for {ch['id']}: {e}")
-        return rows_out
+        return ch, rows_out, failed
 
-    out_rows: list[dict] = []
-    with ThreadPoolExecutor(max_workers=concurrency) as ex:
-        futures = [ex.submit(process, ch) for ch in rows]
-        for f in tqdm(as_completed(futures), total=len(futures), desc="gen_qa"):
-            out_rows.extend(f.result())
+    def run_pass(chunks: list[dict], workers: int, desc: str) -> tuple[list[dict], list[dict]]:
+        out: list[dict] = []
+        failed: list[dict] = []
+        with ThreadPoolExecutor(max_workers=workers) as ex:
+            futures = [ex.submit(process, ch) for ch in chunks]
+            for f in tqdm(as_completed(futures), total=len(futures), desc=desc):
+                ch, ch_rows, ch_failed = f.result()
+                out.extend(ch_rows)
+                if ch_failed:
+                    failed.append(ch)
+        return out, failed
+
+    out_rows, failed = run_pass(rows, concurrency, "gen_qa")
+    # Retry pass at lower concurrency so transient rate-limit drops are recovered, not lost.
+    if failed:
+        print(f"[gen_qa] retrying {len(failed)} sections that errored (lower concurrency)...")
+        retry_rows, still_failed = run_pass(failed, max(2, concurrency // 4), "gen_qa-retry")
+        out_rows += retry_rows
+        if still_failed:
+            print(f"[gen_qa] ⚠️  {len(still_failed)} sections still failed after retry "
+                  f"(consider lower concurrency or a higher-TPM model/tier).")
 
     n = write_jsonl(out_path, out_rows)
     print(f"[gen_qa] {len(rows)} sections -> {n} raw QA -> {out_path}")

@@ -9,7 +9,7 @@ paths:
 
 models:
   base: Qwen/Qwen3-14B            # student/base/serving (Qwen3-14B is instruct-tuned by default; no -Instruct repo)
-  teacher: gpt-4o                  # enrichment + QA generation (OpenAI)
+  teacher: gpt-4o-mini             # enrichment + QA generation (Tier-1 200K TPM -> high concurrency OK)
   judge: gpt-4o-mini               # grounding auto-cleaner + eval grading (cheaper)
   gold: claude-sonnet-4-5          # gold drafting — DIFFERENT family than teacher (cross-model, avoids teach-to-test)
 
