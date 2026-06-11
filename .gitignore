@@ -1,13 +1,36 @@
+# --- secrets / env (keep .env.example tracked) ---
 .env
+.env.*
+!.env.example
+
+# --- python ---
 __pycache__/
-*.pyc
+*.py[cod]
+*.egg-info/
+build/
+dist/
 .venv/
 venv/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# --- generated pipeline artifacts ---
 data/*.jsonl
 data/dataset_info.json
 data/dataset_manifest.json
 models/
-docs/*.docx
-docs/**/*.meta.json
-*.egg-info/
-.pytest_cache/
+
+# --- source docs + their metadata sidecars (proprietary, never publish) ---
+docs/*
+!docs/.gitkeep
+**/*.meta.json
+
+# --- OS / editor ---
+.DS_Store
+*.log
+.vscode/
+.idea/
