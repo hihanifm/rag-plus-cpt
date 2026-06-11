@@ -1,12 +1,17 @@
-"""Auto-cleaner: keep a QA pair only if its answer is supported by the source paragraph.
+"""filter_qa — grounding auto-cleaner.
 
-The judge LLM returns {grounded: bool, reason}. Plain/think pairs are rejected if not grounded.
-`unknown` pairs are kept by definition (they are deliberately not answerable from the section — the
-"defer to RAG" behavior). Near-duplicate questions are dropped.
+CONTRACT
+  in:   data/qa_raw.jsonl   (qa_type, question, answer, chunk_text, chunk_id, ...)
+  out:  data/qa.jsonl       (kept)        + data/qa_rejected.jsonl (dropped, with reject_reason)
+  invariants:
+    - `unknown` pairs are kept unjudged (they are the RAG-handoff; not answerable from the section)
+    - non-unknown pairs kept only if the answer is supported by chunk_text
+    - questions deduped (normalized); first occurrence wins
+    - every input pair is accounted for: kept ∪ rejected (no silent drops, except judge errors logged)
+  acceptance: spot-check precision >= ~90%  (`ragcpt review` / run_mvp audit)
 
-After this runs, SPOT-CHECK it with `ragcpt review --mode audit` (judge 30 kept pairs by hand) to
-confirm the cleaner itself is reliable before trusting the whole set.
-Output: data/qa.jsonl
+The judge LLM returns {grounded: bool, reason}. After this runs, SPOT-CHECK it (judge ~30 kept pairs
+by hand) to confirm the cleaner is reliable before trusting the whole set.
 """
 from __future__ import annotations
 
@@ -39,6 +44,21 @@ def _norm(q: str) -> str:
     return re.sub(r"\s+", " ", q.strip().lower())
 
 
+def _partition(rows: list[dict]) -> tuple[list[dict], list[dict]]:
+    """Pure: dedup by normalized question; split into (unknown_auto_keep, candidates_needing_judge).
+    First occurrence of a question wins. Testable without any API."""
+    seen: set[str] = set()
+    unknown_keep: list[dict] = []
+    candidates: list[dict] = []
+    for row in rows:
+        key = _norm(row["question"])
+        if key in seen:
+            continue
+        seen.add(key)
+        (unknown_keep if row.get("qa_type") == "unknown" else candidates).append(row)
+    return unknown_keep, candidates
+
+
 def filter_qa(qa_raw: str | None = None, out: str | None = None) -> Path:
     cfg = load_config()
     in_path = Path(qa_raw) if qa_raw else cfg.data_dir / "qa_raw.jsonl"
@@ -46,40 +66,37 @@ def filter_qa(qa_raw: str | None = None, out: str | None = None) -> Path:
     client, model = judge_client()
 
     concurrency = cfg.get("gen_qa", "concurrency", default=8)
+    rejected_path = out_path.parent / "qa_rejected.jsonl"
 
-    # dedup upfront; unknowns are auto-kept; the rest need a grounding judge.
-    seen: set[str] = set()
-    unknown_keep: list[dict] = []
-    candidates: list[dict] = []
-    n_in = 0
-    for row in read_jsonl(in_path):
-        n_in += 1
-        key = _norm(row["question"])
-        if key in seen:
-            continue
-        seen.add(key)
-        (unknown_keep if row["qa_type"] == "unknown" else candidates).append(row)
+    all_rows = list(read_jsonl(in_path))
+    n_in = len(all_rows)
+    unknown_keep, candidates = _partition(all_rows)
 
-    def judge(row: dict) -> dict | None:
+    def judge(row: dict) -> tuple[str, dict]:
+        """Returns (verdict, row): verdict in {'keep','reject','error'}."""
         ans = re.sub(r"<think>.*?</think>", "", row["answer"], flags=re.DOTALL).strip()
         try:
-            verdict = chat_json(client, model, [{"role": "user", "content": _JUDGE.format(
+            v = chat_json(client, model, [{"role": "user", "content": _JUDGE.format(
                 chunk=row["chunk_text"], q=row["question"], a=ans)}])
         except Exception as e:
-            print(f"[filter_qa] judge failed ({row['chunk_id']}): {e}; dropping")
-            return None
-        if verdict.get("grounded"):
-            row["grounded_reason"] = verdict.get("reason", "")
-            return row
-        return None
+            print(f"[filter_qa] judge failed ({row['chunk_id']}): {e}")
+            row["reject_reason"] = f"judge error: {e}"
+            return "error", row
+        if v.get("grounded"):
+            row["grounded_reason"] = v.get("reason", "")
+            return "keep", row
+        row["reject_reason"] = v.get("reason", "not grounded")
+        return "reject", row
 
     kept: list[dict] = list(unknown_keep)
+    rejected: list[dict] = []
     with ThreadPoolExecutor(max_workers=concurrency) as ex:
-        for r in tqdm(ex.map(judge, candidates), total=len(candidates), desc="filter_qa"):
-            if r:
-                kept.append(r)
+        for verdict, row in tqdm(ex.map(judge, candidates), total=len(candidates), desc="filter_qa"):
+            (kept if verdict == "keep" else rejected).append(row)
 
     n = write_jsonl(out_path, kept)
+    write_jsonl(rejected_path, rejected)          # evidence: never silently drop rejects
     rate = (n / n_in * 100) if n_in else 0
-    print(f"[filter_qa] kept {n}/{n_in} ({rate:.0f}%) -> {out_path}")
+    print(f"[filter_qa] kept {n}/{n_in} ({rate:.0f}%) -> {out_path}  "
+          f"| rejected {len(rejected)} -> {rejected_path}")
     return out_path

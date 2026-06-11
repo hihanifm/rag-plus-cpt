@@ -18,10 +18,9 @@ venv/
 htmlcov/
 .ipynb_checkpoints/
 
-# --- generated pipeline artifacts ---
+# --- generated pipeline artifacts (evidence stays local) ---
 data/*.jsonl
-data/dataset_info.json
-data/dataset_manifest.json
+data/*.json
 models/
 
 # --- source docs + their metadata sidecars (proprietary, never publish) ---

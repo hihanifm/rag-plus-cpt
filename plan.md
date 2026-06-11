@@ -1,5 +1,9 @@
 # Plan: Carrier-Specific SFT Pipeline for Qwen3-14B (DGX Spark) + Web Control Plane
 
+> **FROZEN — decisions of record (ADR).** This is the *why*: architecture choices, trade-offs,
+> staging. It is not edited as code evolves. For the *what each module guarantees* (live contracts),
+> see **[SPEC.md](SPEC.md)**. For verification, see `tests/` + the eval (gold + Pass/Kill).
+
 ## Guiding principle (applies to the whole project)
 
 **Simplicity and flexibility over cost. LLM-first.** The user's north star: keep each piece simple,

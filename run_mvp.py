@@ -19,9 +19,37 @@ See README.md for the full morning checklist.
 from __future__ import annotations
 
 import argparse
+import json
+import subprocess
 import sys
+import time
+from pathlib import Path
 
 from ragcpt import build_sft, extract, filter_qa, gen_qa, review
+from ragcpt.config import load_config
+
+
+def _prep_snapshot(limit):
+    """Evidence: record what produced this dataset (no infra, just don't lose evidence)."""
+    cfg = load_config()
+    def count(name):
+        p = cfg.data_dir / name
+        return sum(1 for _ in open(p)) if p.exists() else 0
+    try:
+        commit = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    except Exception:
+        commit = "no-git"
+    snap = {
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+        "git_commit": commit,
+        "limit": limit,
+        "counts": {f: count(f) for f in
+                   ["chunks.jsonl", "qa_raw.jsonl", "qa.jsonl", "qa_rejected.jsonl", "sft.jsonl"]},
+        "pipeline": cfg.raw,
+    }
+    out = cfg.data_dir / "prep_snapshot.json"
+    out.write_text(json.dumps(snap, indent=2))
+    print(f"[prep] snapshot -> {out}  ({snap['counts']})")
 
 
 def cmd_prep(args):
@@ -29,6 +57,7 @@ def cmd_prep(args):
     gen_qa.gen_qa(limit=args.limit)
     filter_qa.filter_qa()
     build_sft.build_sft()
+    _prep_snapshot(args.limit)
     print("\n[prep] done. Next: `python run_mvp.py audit` then `curate`, then train on the GPU box.")
 
 
