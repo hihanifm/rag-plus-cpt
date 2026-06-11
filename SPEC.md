@@ -43,8 +43,11 @@ each module's docstring.
 - **in:** `data/chunks.jsonl` + `data/qa.jsonl`
 - **out:** `data/sft.jsonl` (messages JSONL) + `data/dataset_manifest.json` + registers `carrier_sft`
 - **invariants:**
-  - **every** chunk becomes a raw-text sample (full coverage)
-  - QA sampled/upsampled to hit `dataset_mix` proportions (coverage ≠ ratio)
+  - **every** chunk becomes a raw-text sample (full coverage) — raw count is fixed = #chunks
+  - QA volume scaled **relative to raw** to hit `dataset_mix` (coverage ≠ ratio):
+    `qa_target[type] = raw_count * (mix[type] / mix[raw_text])`
+    (e.g. raw=100, mix 30/30/30/10 → plain=100, think=100, unknown=33; raw share 100/333≈30%).
+    Pools smaller than target are upsampled with replacement.
   - all samples are OpenAI `messages` format; QA samples carry the reasoning-skeleton system prompt
 - **acceptance:** `final_counts` ≈ `dataset_mix`; raw_text count == chunk count.
 

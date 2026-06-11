@@ -77,7 +77,19 @@ def build_sft(chunks: str | None = None, qa: str | None = None,
 
 
 def _apply_mix(raw, qa_by_type, mix, rng):
-    """Hit target proportions by resampling each bucket relative to raw_text (always full)."""
+    """Hit dataset_mix proportions while keeping FULL raw coverage (every section included once).
+
+    Raw is fixed at len(raw); QA volume is scaled *relative to raw* so the final ratio matches `mix`:
+
+        base_per_weight = raw_count / raw_weight
+        qa_target[type] = round(base_per_weight * mix[type])
+                        = raw_count * (mix[type] / raw_weight)
+
+    Example — raw=100, mix raw/plain/think/unknown = 30/30/30/10:
+        base_per_weight = 100/30 = 3.33
+        plain=100, think=100, unknown=33  -> total QA=233, total=333, raw share=100/333≈30%.
+    QA pools smaller than target are upsampled with replacement; larger are sampled without.
+    """
     raw_w = mix.get("raw_text", 30) or 1
     pools = {"raw_text": raw, "qa_plain": qa_by_type["plain"],
              "qa_think": qa_by_type["think"], "qa_unknown": qa_by_type["unknown"]}
