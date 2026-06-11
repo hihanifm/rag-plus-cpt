@@ -51,8 +51,8 @@ def evaluate(which: str = "tuned", out: str | None = None) -> dict:
     client, model = endpoint_client(which)
     judge, jmodel = judge_client()
 
-    gold = list(read_jsonl(cfg.eval_dir / "gold.jsonl"))
-    probes_path = cfg.eval_dir / "chat_probes.jsonl"
+    gold = list(read_jsonl(cfg.gold_path))
+    probes_path = cfg.chat_probes_path
     probes = list(read_jsonl(probes_path)) if probes_path.exists() else []
 
     correct = 0

@@ -24,7 +24,7 @@ from .llm_client import chat_json, teacher_client
 
 def audit(n: int = 30, qa: str | None = None) -> float:
     cfg = load_config()
-    qa_path = Path(qa) if qa else cfg.data_dir / "qa.jsonl"
+    qa_path = Path(qa) if qa else cfg.qa_path
     rows = [r for r in read_jsonl(qa_path) if r["qa_type"] != "unknown"]
     random.shuffle(rows)
     rows = rows[:n]
@@ -64,8 +64,8 @@ Return JSON: {{"items": [{{"question":"...","expected":"...","category":"fact"|"
 
 def curate(k_per_section: int = 1, chunks: str | None = None, gold: str | None = None) -> Path:
     cfg = load_config()
-    chunks_path = Path(chunks) if chunks else cfg.data_dir / "chunks.jsonl"
-    gold_path = Path(gold) if gold else cfg.eval_dir / "gold.jsonl"
+    chunks_path = Path(chunks) if chunks else cfg.chunks_path
+    gold_path = Path(gold) if gold else cfg.gold_path
     client, model = teacher_client()
 
     rows = list(read_jsonl(chunks_path))

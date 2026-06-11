@@ -61,12 +61,12 @@ def _partition(rows: list[dict]) -> tuple[list[dict], list[dict]]:
 
 def filter_qa(qa_raw: str | None = None, out: str | None = None) -> Path:
     cfg = load_config()
-    in_path = Path(qa_raw) if qa_raw else cfg.data_dir / "qa_raw.jsonl"
-    out_path = Path(out) if out else cfg.data_dir / "qa.jsonl"
+    in_path = Path(qa_raw) if qa_raw else cfg.qa_raw_path
+    out_path = Path(out) if out else cfg.qa_path
     client, model = judge_client()
 
     concurrency = cfg.get("gen_qa", "concurrency", default=8)
-    rejected_path = out_path.parent / "qa_rejected.jsonl"
+    rejected_path = cfg.qa_rejected_path
 
     all_rows = list(read_jsonl(in_path))
     n_in = len(all_rows)

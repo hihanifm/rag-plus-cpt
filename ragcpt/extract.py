@@ -142,7 +142,7 @@ _READERS = {".docx": _docx_sections, ".pdf": _pdf_sections, ".txt": _txt_section
 def extract(docs_dir: str | None = None, out: str | None = None) -> Path:
     cfg = load_config()
     docs_root = Path(docs_dir) if docs_dir else cfg.docs_dir
-    out_path = Path(out) if out else cfg.data_dir / "chunks.jsonl"
+    out_path = Path(out) if out else cfg.chunks_path
 
     files = sorted(f for f in docs_root.rglob("*")
                    if f.suffix.lower() in _READERS and not f.name.startswith("~$"))

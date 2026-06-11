@@ -51,9 +51,9 @@ def _qa_sample(qa: dict) -> dict:
 def build_sft(chunks: str | None = None, qa: str | None = None,
               out: str | None = None, seed: int = 0) -> Path:
     cfg = load_config()
-    chunks_path = Path(chunks) if chunks else cfg.data_dir / "chunks.jsonl"
-    qa_path = Path(qa) if qa else cfg.data_dir / "qa.jsonl"
-    out_path = Path(out) if out else cfg.data_dir / "sft.jsonl"
+    chunks_path = Path(chunks) if chunks else cfg.chunks_path
+    qa_path = Path(qa) if qa else cfg.qa_path
+    out_path = Path(out) if out else cfg.sft_path
     rng = random.Random(seed)
 
     chunk_rows = list(read_jsonl(chunks_path))

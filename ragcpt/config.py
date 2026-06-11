@@ -39,6 +39,36 @@ class Config:
     def models_dir(self) -> Path:
         return self._path("paths", "models")
 
+    # ---- canonical artifact paths (single source of truth for the inter-stage data flow) ----
+    # Stages reference these instead of repeating "chunks.jsonl" etc. across files.
+    @property
+    def chunks_path(self) -> Path:        # extract  -> gen_qa, build_sft, review
+        return self.data_dir / "chunks.jsonl"
+
+    @property
+    def qa_raw_path(self) -> Path:        # gen_qa   -> filter_qa
+        return self.data_dir / "qa_raw.jsonl"
+
+    @property
+    def qa_path(self) -> Path:            # filter_qa-> build_sft, review (audit)
+        return self.data_dir / "qa.jsonl"
+
+    @property
+    def qa_rejected_path(self) -> Path:   # filter_qa (evidence)
+        return self.data_dir / "qa_rejected.jsonl"
+
+    @property
+    def sft_path(self) -> Path:           # build_sft-> train
+        return self.data_dir / "sft.jsonl"
+
+    @property
+    def gold_path(self) -> Path:          # review/curate -> evaluate
+        return self.eval_dir / "gold.jsonl"
+
+    @property
+    def chat_probes_path(self) -> Path:   # evaluate
+        return self.eval_dir / "chat_probes.jsonl"
+
     def _path(self, *keys: str) -> Path:
         node: Any = self.raw
         for k in keys:

@@ -87,8 +87,8 @@ _THINK_SHAPE = """<think>
 
 def gen_qa(chunks: str | None = None, out: str | None = None, limit: int | None = None) -> Path:
     cfg = load_config()
-    chunks_path = Path(chunks) if chunks else cfg.data_dir / "chunks.jsonl"
-    out_path = Path(out) if out else cfg.data_dir / "qa_raw.jsonl"
+    chunks_path = Path(chunks) if chunks else cfg.chunks_path
+    out_path = Path(out) if out else cfg.qa_raw_path
     client, model = teacher_client()
 
     n_plain = cfg.get("gen_qa", "per_chunk_plain", default=2)
