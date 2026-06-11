@@ -9,12 +9,19 @@ paths:
 
 models:
   base: Qwen/Qwen3-14B            # student/base/serving (Qwen3-14B is instruct-tuned by default; no -Instruct repo)
-  teacher: gpt-4o                  # enrichment, QA gen, gold drafting (OpenAI)
+  teacher: gpt-4o                  # enrichment + QA generation (OpenAI)
   judge: gpt-4o-mini               # grounding auto-cleaner + eval grading (cheaper)
+  gold: claude-sonnet-4-5          # gold drafting — DIFFERENT family than teacher (cross-model, avoids teach-to-test)
 
 teacher:
   base_url: https://api.openai.com/v1
   api_key_env: OPENAI_API_KEY
+
+# Gold-set drafting uses a different model family than the teacher (reduces phrasing contamination).
+# Anthropic exposes an OpenAI-compatible endpoint, so the same client works.
+gold:
+  base_url: https://api.anthropic.com/v1
+  api_key_env: ANTHROPIC_API_KEY
 
 # Tuned + base Qwen endpoints (vLLM, OpenAI-compatible) — set after `serve`.
 serving:

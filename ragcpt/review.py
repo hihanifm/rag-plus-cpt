@@ -19,7 +19,7 @@ from pathlib import Path
 
 from .config import load_config
 from .io_utils import read_jsonl
-from .llm_client import chat_json, teacher_client
+from .llm_client import chat_json, gold_client
 
 
 def audit(n: int = 30, qa: str | None = None) -> float:
@@ -66,7 +66,7 @@ def curate(k_per_section: int = 1, chunks: str | None = None, gold: str | None =
     cfg = load_config()
     chunks_path = Path(chunks) if chunks else cfg.chunks_path
     gold_path = Path(gold) if gold else cfg.gold_path
-    client, model = teacher_client()
+    client, model = gold_client()   # cross-model gold (Claude if ANTHROPIC_API_KEY set, else teacher)
 
     rows = list(read_jsonl(chunks_path))
     print(f"Curating gold from {len(rows)} sections. For each candidate: [a]pprove [e]dit [s]kip [q]uit")

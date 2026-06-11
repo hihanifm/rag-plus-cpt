@@ -40,6 +40,20 @@ def judge_client() -> tuple[OpenAI, str]:
     return _client(base, key), cfg.judge_model
 
 
+def gold_client() -> tuple[OpenAI, str]:
+    """Gold-set drafting — prefer a DIFFERENT model family than the teacher (cross-model, avoids
+    teaching-to-the-test). If the gold API key is set, use it (Anthropic by default); otherwise
+    fall back to the teacher so the pipeline still works with a single key."""
+    cfg = load_config()
+    key = os.environ.get(cfg.get("gold", "api_key_env", default="ANTHROPIC_API_KEY"))
+    if not key:
+        print("[gold] no gold API key set — falling back to the teacher model for gold drafting "
+              "(set ANTHROPIC_API_KEY for cross-model gold).")
+        return teacher_client()
+    base = cfg.get("gold", "base_url", default="https://api.anthropic.com/v1")
+    return _client(base, key), cfg.get("models", "gold", default="claude-sonnet-4-5")
+
+
 def endpoint_client(which: str) -> tuple[OpenAI, str]:
     """which='tuned' or 'base' — a vLLM OpenAI-compatible endpoint serving Qwen3-14B."""
     cfg = load_config()
