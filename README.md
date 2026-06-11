@@ -24,6 +24,37 @@ under `success:` — set real numbers before you train.
 
 ---
 
+## How Lambda actually works (read first)
+
+Lambda is **not** an inference API — it's a **GPU box** (a cloud VM with an H100). You **SSH in and
+run things there.** There is no Lambda key to call from your Mac.
+
+- **OpenAI key** = the **teacher** API (real cloud service). Used by `gen_qa` / `filter` / `eval`
+  grading — runs wherever you execute those commands.
+- **Lambda box** = the hardware. You `git clone` this repo onto it and run `train` / `serve`.
+- **Tuned-model endpoint** = **vLLM running on the Lambda box**, exposing an OpenAI-*compatible* URL
+  like `http://<box-ip>:8000/v1`. Put that in `.env` as `TUNED_BASE_URL` (or reach it via
+  `ssh -L 8000:localhost:8000 ubuntu@<box-ip>`).
+
+**Simplest path — do everything on the box** (one machine, no syncing):
+```bash
+ssh ubuntu@<lambda-box-ip>
+git clone https://github.com/hihanifm/rag-plus-cpt && cd rag-plus-cpt
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-train.txt
+cp .env.example .env && nano .env          # add OPENAI_API_KEY
+# copy your ~10 Verizon .docx into docs/  (scp from your Mac)
+python run_mvp.py prep                       # teacher = OpenAI; runs on the box
+python run_mvp.py train --smoke && python run_mvp.py train
+python -c "from ragcpt import merge; merge.merge('models/mvp/run_<ts>')"
+python run_mvp.py serve-base &               # :8001 baseline
+python run_mvp.py serve --run models/mvp/run_<ts> &   # :8000 tuned
+# set BASE_BASE_URL / TUNED_BASE_URL in .env to the localhost ports, then:
+python run_mvp.py eval --which base && python run_mvp.py eval --which tuned
+```
+⚠️ The box is **ephemeral** — `scp` the merged model + `data/eval_report_*.json` back to your Mac
+**before you destroy the instance** (they're gitignored / too big for git).
+
 ## Run order
 
 ### A. Data prep — on the Mac (needs `OPENAI_API_KEY`)
