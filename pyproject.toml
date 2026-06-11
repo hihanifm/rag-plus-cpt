@@ -1,0 +1,20 @@
+[project]
+name = "ragcpt"
+version = "0.1.0"
+description = "Carrier-aware Qwen3-14B SFT pipeline (rag-plus-cpt, stage 1)"
+requires-python = ">=3.10"
+dynamic = ["dependencies"]
+
+[project.scripts]
+# Stage A wires this up (cli.py). Present now so `pip install -e .` exposes `ragcpt`.
+ragcpt = "cli:app"
+
+[tool.setuptools]
+py-modules = ["cli"]
+packages = ["ragcpt"]
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

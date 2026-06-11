@@ -1,0 +1,3 @@
+{"question": "What value does Verizon set for the periodic TAU timer (T3412)?", "expected": "54 minutes (example — replace with the real value from your docs)", "category": "fact"}
+{"question": "How does Verizon's T3412 differ from the 3GPP default?", "expected": "3GPP default is 54 min; carrier may override — replace with real comparison", "category": "comparison"}
+{"question": "What is Verizon's exact value for <a parameter NOT in your docs>?", "expected": "INSUFFICIENT EVIDENCE — model should defer to RAG, not guess", "category": "unknown"}

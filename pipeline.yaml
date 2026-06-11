@@ -1,0 +1,58 @@
+# Stage 0 config — one hardcoded path (external: Mac + Lambda H100 + OpenAI teacher).
+# Profile abstraction (external<->internal) comes in Stage A.
+
+paths:
+  docs: docs                      # drop the ~10 Verizon .docx here
+  data: data                      # generated artifacts
+  eval: eval                      # gold.jsonl + chat_probes.jsonl
+  models: models                  # run-versioned outputs
+
+models:
+  base: Qwen/Qwen3-14B-Instruct   # student / base / serving
+  teacher: gpt-4o                  # enrichment, QA gen, gold drafting (OpenAI)
+  judge: gpt-4o-mini               # grounding auto-cleaner + eval grading (cheaper)
+
+teacher:
+  base_url: https://api.openai.com/v1
+  api_key_env: OPENAI_API_KEY
+
+# Tuned + base Qwen endpoints (vLLM, OpenAI-compatible) — set after `serve`.
+serving:
+  tuned_base_url_env: TUNED_BASE_URL
+  tuned_api_key_env: TUNED_API_KEY
+  base_base_url_env: BASE_BASE_URL
+  base_api_key_env: BASE_API_KEY
+
+# How many QA pairs to ask the teacher for, per section, by type.
+# "Coverage != ratio": every section is always a raw sample; QA counts set the mix.
+gen_qa:
+  per_chunk_plain: 2
+  per_chunk_think: 2
+  per_chunk_unknown: 1            # "defer to RAG" samples
+  max_chunk_chars: 6000          # cap teacher input per section
+
+dataset_mix:                      # target proportions in the final sft.jsonl (eval-tuned)
+  raw_text: 30
+  qa_plain: 30
+  qa_think: 30
+  qa_unknown: 10
+
+train:
+  lora_rank: 64
+  lora_alpha: 128
+  lora_target: all
+  cutoff_len: 4096
+  learning_rate: 7.0e-5
+  epochs: 3
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  # smoke run overrides
+  smoke_max_samples: 16
+  smoke_max_steps: 20
+
+# Success / kill threshold — write your real numbers here BEFORE training.
+success:
+  gold_pass_min: 28               # tuned correct >= this (of ~40)
+  base_expected: 14               # rough base baseline for the "~2x" framing
+  unknown_defer_min_pct: 80       # insufficient-evidence Qs deferred, not hallucinated
+  chat_regression_allowed: 0

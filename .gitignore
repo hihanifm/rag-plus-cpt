@@ -1,0 +1,13 @@
+.env
+__pycache__/
+*.pyc
+.venv/
+venv/
+data/*.jsonl
+data/dataset_info.json
+data/dataset_manifest.json
+models/
+docs/*.docx
+docs/**/*.meta.json
+*.egg-info/
+.pytest_cache/

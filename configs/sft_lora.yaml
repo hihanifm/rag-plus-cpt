@@ -1,0 +1,29 @@
+# Base LLaMA-Factory SFT config. ragcpt/train.py overrides model/dataset/output/hparams per run.
+stage: sft
+do_train: true
+finetuning_type: lora
+template: qwen3
+
+# dataset (overridden: dataset_dir/output_dir point at run paths)
+dataset: carrier_sft
+cutoff_len: 4096
+overwrite_cache: true
+preprocessing_num_workers: 8
+
+# lora
+lora_rank: 64
+lora_alpha: 128
+lora_target: all
+
+# train
+per_device_train_batch_size: 1
+gradient_accumulation_steps: 16
+learning_rate: 7.0e-5
+num_train_epochs: 3
+lr_scheduler_type: cosine
+warmup_ratio: 0.05
+bf16: true
+gradient_checkpointing: true
+logging_steps: 5
+save_steps: 200
+plot_loss: true
