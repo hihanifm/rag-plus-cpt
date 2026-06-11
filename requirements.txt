@@ -1,6 +1,7 @@
 # Dev / data-prep deps (run on the Mac — no GPU needed).
 # Training/serving deps live in requirements-train.txt (installed on the Lambda H100 / DGX).
 python-docx>=1.1.0      # read .docx
+pdfplumber>=0.11.0      # read .pdf (text-based)
 openai>=1.40.0          # OpenAI-compatible client (teacher = GPT; also talks to vLLM endpoints)
 pyyaml>=6.0             # pipeline.yaml
 python-dotenv>=1.0.0    # .env

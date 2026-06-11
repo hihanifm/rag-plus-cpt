@@ -8,7 +8,7 @@ paths:
   models: models                  # run-versioned outputs
 
 models:
-  base: Qwen/Qwen3-14B-Instruct   # student / base / serving
+  base: Qwen/Qwen3-14B            # student/base/serving (Qwen3-14B is instruct-tuned by default; no -Instruct repo)
   teacher: gpt-4o                  # enrichment, QA gen, gold drafting (OpenAI)
   judge: gpt-4o-mini               # grounding auto-cleaner + eval grading (cheaper)
 
