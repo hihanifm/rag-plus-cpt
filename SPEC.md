@@ -90,6 +90,10 @@ each module's docstring.
 - **filter_qa retry pass:** add app-level retry for failed batch judges (mirror gen_qa's
   retry-failed-sections) so valid pairs aren't dropped on a stubborn 429 after SDK retries exhaust.
   MVP relies on SDK-level retry (`max_retries`) only. (`ragcpt/filter_qa.py` `judge_group`.)
+- **Smart/section-aware chunking:** PDFs are currently packed by whole pages to a soft ~2500-char
+  target (clubs small pages, no mid-sentence cuts, but not section-header aware — chunks can straddle
+  or split logical sections). Upgrade to section-number/`VZ_REQ_`-aware split, LLM-driven
+  segmentation, or recursive split with overlap. (`ragcpt/extract.py` `_pack` / `_pdf_sections`.)
 
 ### Evidence (Stage 0, no infra)
 `data/` is the evidence folder and records what produced a result: `chunks/qa_raw/qa/qa_rejected/sft`

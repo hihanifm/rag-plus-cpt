@@ -95,7 +95,15 @@ def _is_toc_or_cover(text: str, page_index: int) -> bool:
 
 
 def _pack(pages: list[str], target: int) -> Iterator[tuple[str, str]]:
-    """Merge consecutive content pages into ~target-char chunks; heading = first line of chunk."""
+    """Merge consecutive content pages into ~target-char chunks; heading = first line of chunk.
+
+    TODO(Stage A): smarter, section-aware chunking. Current behavior packs whole PAGES to a soft
+    ~target size — clubs small pages, never cuts mid-sentence, but is NOT aware of logical section
+    headings (a chunk can straddle two sections; a long section splits at page breaks; an oversized
+    page becomes one big chunk). Upgrade options: split on the docs' own numbering (`^\\d+(\\.\\d+)* `
+    / `VZ_REQ_` IDs), or LLM-driven segmentation (LLM-first), or recursive paragraph/sentence split
+    with small overlap. MVP page-packing is adequate for the litmus test.
+    """
     buf: list[str] = []
     size = 0
     for t in pages:
