@@ -97,6 +97,9 @@ def filter_qa(qa_raw: str | None = None, out: str | None = None) -> Path:
                 chunk=items[0]["chunk_text"], pairs="\n".join(pairs))}])
             verdicts = {v.get("i"): v for v in resp.get("verdicts", [])}
         except Exception as e:
+            # TODO(Stage A): add an app-level retry pass for failed batch judges, mirroring gen_qa's
+            # retry-failed-sections, so valid pairs aren't dropped on a stubborn transient (429) after
+            # the SDK's max_retries are exhausted. For MVP, SDK-level retry is sufficient.
             print(f"[filter_qa] batch judge failed ({items[0]['chunk_id']}): {e}")
             for r in items:
                 r["reject_reason"] = f"judge error: {e}"

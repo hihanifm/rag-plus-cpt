@@ -86,6 +86,11 @@ each module's docstring.
 
 ---
 
+### TODO (post-MVP / Stage A)
+- **filter_qa retry pass:** add app-level retry for failed batch judges (mirror gen_qa's
+  retry-failed-sections) so valid pairs aren't dropped on a stubborn 429 after SDK retries exhaust.
+  MVP relies on SDK-level retry (`max_retries`) only. (`ragcpt/filter_qa.py` `judge_group`.)
+
 ### Evidence (Stage 0, no infra)
 `data/` is the evidence folder and records what produced a result: `chunks/qa_raw/qa/qa_rejected/sft`
 JSONL, `dataset_manifest.json`, `eval_report_*.json`, and `prep_snapshot.json` (timestamp + git
