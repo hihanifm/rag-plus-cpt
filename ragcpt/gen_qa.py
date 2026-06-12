@@ -78,6 +78,12 @@ source document (RAG)."
 Return JSON: {{"pairs": [{{"qa_type": "unknown", "question": "...", "answer": "..."}}]}}
 """
 
+# TODO(Stage A): generalize this skeleton to domain-agnostic. The corpus is ~half Android-ecosystem
+# (app/services/settings/UX), not only telecom — forcing a 3GPP frame makes the teacher write hollow
+# "3GPP baseline: N/A" or invent fake 3GPP refs. Replace with: Default behavior (3GPP for telecom /
+# AOSP for device-app / general expectation) / Carrier requirement / Confidence. Also make gen_qa
+# domain-aware + add a free-form `domain` tag on QA records. Requires regenerating the dataset.
+# See SPEC.md "TODO (post-MVP / Stage A)". Mirror the same change in ragcpt/reasoning_skeleton.md.
 _THINK_SHAPE = """<think>
 - 3GPP baseline: ...
 - Carrier-specific deviation: ...
