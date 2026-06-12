@@ -9,8 +9,8 @@ paths:
 
 models:
   base: Qwen/Qwen3-14B            # student/base/serving (Qwen3-14B is instruct-tuned by default; no -Instruct repo)
-  teacher: gpt-4o-mini             # enrichment + QA generation (Tier-1 200K TPM -> high concurrency OK)
-  judge: gpt-4o-mini               # grounding auto-cleaner + eval grading (cheaper)
+  teacher: gpt-5-mini              # enrichment + QA generation (500K TPM -> highest headroom + newer model)
+  judge: gpt-5-mini                # grounding auto-cleaner + eval grading
   gold: claude-sonnet-4-5          # gold drafting — DIFFERENT family than teacher (cross-model, avoids teach-to-test)
 
 teacher:
@@ -37,8 +37,7 @@ gen_qa:
   per_chunk_think: 2
   per_chunk_unknown: 1            # "defer to RAG" samples
   max_chunk_chars: 6000          # cap teacher input per section
-  concurrency: 5                 # paced UNDER the rate limit (gpt-4o-mini: 200K TPM / 500 RPM on this org).
-                                 # 16 overshot -> backoff storm collapsed throughput. ~5 stays clean.
+  concurrency: 8                 # gpt-5-mini: 500K TPM / 500 RPM. RPM is now the cap; ~8 stays under it.
   max_retries: 5                 # rare overshoot fails fast (not 17s chains); retry-pass recovers drops
   request_timeout: 60            # seconds per call
 
