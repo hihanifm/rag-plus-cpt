@@ -95,7 +95,9 @@ each module's docstring.
   `Carrier requirement` / `Confidence`. Make `gen_qa` **domain-aware** (infer domain, ground "Default
   behavior" in the right baseline, never invent 3GPP for non-telecom) and add a **free-form `domain`
   tag** on QA records (semantic filtering later; no fixed enum). **Requires regenerating the dataset.**
-  Touches: `ragcpt/reasoning_skeleton.md` (system prompt + training `<think>`), `ragcpt/gen_qa.py`.
+  **No extra LLM call** — fold `domain` into the existing `gen_qa` JSON response (`{"domain":...,
+  "pairs":[...]}`); the teacher already reads the chunk. (Chunk-level domain, if wanted, rides the
+  Stage-A `enrich` step.) Touches: `ragcpt/reasoning_skeleton.md`, `ragcpt/gen_qa.py`.
 - **filter_qa retry pass:** add app-level retry for failed batch judges (mirror gen_qa's
   retry-failed-sections) so valid pairs aren't dropped on a stubborn 429 after SDK retries exhaust.
   MVP relies on SDK-level retry (`max_retries`) only. (`ragcpt/filter_qa.py` `judge_group`.)
