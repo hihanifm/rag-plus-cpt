@@ -26,6 +26,8 @@ models/
 # --- source docs + their metadata sidecars (proprietary, never publish) ---
 docs/*
 !docs/.gitkeep
+samples/*           # proprietary sample JSON/xlsx for building readers — never publish
+!samples/.gitkeep
 **/*.meta.json
 
 # --- OS / editor ---
