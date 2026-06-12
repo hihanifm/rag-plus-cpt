@@ -97,12 +97,17 @@ def _is_toc_or_cover(text: str, page_index: int) -> bool:
 def _pack(pages: list[str], target: int) -> Iterator[tuple[str, str]]:
     """Merge consecutive content pages into ~target-char chunks; heading = first line of chunk.
 
-    TODO(Stage A): smarter, section-aware chunking. Current behavior packs whole PAGES to a soft
-    ~target size — clubs small pages, never cuts mid-sentence, but is NOT aware of logical section
-    headings (a chunk can straddle two sections; a long section splits at page breaks; an oversized
-    page becomes one big chunk). Upgrade options: split on the docs' own numbering (`^\\d+(\\.\\d+)* `
-    / `VZ_REQ_` IDs), or LLM-driven segmentation (LLM-first), or recursive paragraph/sentence split
-    with small overlap. MVP page-packing is adequate for the litmus test.
+    TODO(Stage A): chunk by the document's SECTION TAXONOMY so each chunk is coherent + as complete
+    as possible. Current behavior packs whole PAGES to a soft ~target size — clubs small pages, never
+    cuts mid-sentence, but is NOT aware of logical section headings (a chunk can straddle two sections;
+    a long section splits at page breaks). Desired:
+      - split on the heading hierarchy (e.g. "5.2 Attach Procedure" / "5.2.1 ..."), not page breaks;
+      - MERGE too-small subsections up to a sensible size; SPLIT oversized sections only at natural
+        sub-boundaries (paragraph/subsection), keeping each chunk self-contained;
+      - do NOT split on `VZ_REQ_` requirement IDs (often a few lines -> chunks too small);
+      - NO overlap/redundancy (this is training data, not embedding/RAG retrieval);
+      - LLM-driven segmentation is fine (LLM-first; cost not a constraint).
+    MVP page-packing is adequate for the litmus test.
     """
     buf: list[str] = []
     size = 0
