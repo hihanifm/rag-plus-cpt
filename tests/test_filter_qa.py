@@ -25,3 +25,18 @@ def test_every_input_accounted_for():
     unknown_keep, candidates = filter_qa._partition(rows)
     # u1 deduped -> 1 unknown, 2 candidates; total unique = 3
     assert len(unknown_keep) + len(candidates) == 3
+
+
+def _row_c(chunk_id, q):
+    r = _row("plain", q)
+    r["chunk_id"] = chunk_id
+    return r
+
+
+def test_group_by_chunk_batches_same_source():
+    rows = [_row_c("c::0", "q1"), _row_c("c::0", "q2"), _row_c("c::1", "q3")]
+    groups = filter_qa._group_by_chunk(rows)
+    assert set(groups) == {"c::0", "c::1"}
+    assert len(groups["c::0"]) == 2 and len(groups["c::1"]) == 1
+    # one judge call per chunk instead of per pair: 2 calls for 3 pairs
+    assert len(groups) == 2
